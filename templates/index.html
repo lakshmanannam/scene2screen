@@ -1,1 +1,638 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sceen2Screen | AI Cinema Pre-Production</title>
+    <style>
+        /* CSS VARIABLES & THEME - ELIMINATING PURE BLACK */
+        :root {
+            --bg-base: #020412; /* Deepest Midnight Blue instead of Black */
+            --bg-accent: #0a0b1e;
+            --accent-primary: #00d2ff; /* Cyber Light Blue */
+            --accent-secondary: #08d9d6; /* Secondary Cyan */
+            --glass-bg: rgba(10, 15, 40, 0.45); /* Blue-tinted glass */
+            --sidebar-width: 280px;
+            --transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+        }
 
+        /* RESET & BASE */
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body, html {
+            height: 100%;
+            background-color: var(--bg-base);
+            color: #f0f0f0;
+            font-family: 'Cambria', 'Georgia', serif;
+            overflow: hidden;
+        }
+
+        /* CINEMATIC OVERLAYS */
+        .cine-layer {
+            position: fixed;
+            top: 0; left: 0; width: 100%; height: 100%;
+            pointer-events: none;
+            z-index: 1000;
+        }
+
+        .film-grain {
+            background: url('https://grainy-gradients.vercel.app/noise.svg');
+            opacity: 0.05;
+            mix-blend-mode: overlay;
+        }
+
+        .scanlines {
+            background: linear-gradient(
+                rgba(255, 255, 255, 0.01) 50%,
+                rgba(10, 15, 30, 0.05) 50%
+            );
+            background-size: 100% 4px;
+        }
+
+        .vignette {
+            background: radial-gradient(circle, transparent 40%, rgba(2, 4, 18, 0.9) 160%);
+        }
+
+        /* Letterbox bars - Deepest Blue instead of Black */
+        .letterbox {
+            position: fixed;
+            left: 0; width: 100%; height: 8vh;
+            background: #01020a;
+            z-index: 1500;
+            transition: var(--transition);
+        }
+        .letterbox.top { top: 0; }
+        .letterbox.bottom { bottom: 0; }
+
+        /* Floating Dust Motes */
+        .dust-container {
+            position: absolute;
+            width: 100%; height: 100%;
+            overflow: hidden;
+            z-index: 1;
+        }
+        .mote {
+            position: absolute;
+            background: var(--accent-primary);
+            border-radius: 50%;
+            opacity: 0.15;
+            filter: blur(1px);
+            animation: float 20s infinite linear;
+        }
+
+        @keyframes float {
+            0% { transform: translateY(100vh) translateX(0); opacity: 0; }
+            20% { opacity: 0.3; }
+            80% { opacity: 0.3; }
+            100% { transform: translateY(-10vh) translateX(50px); opacity: 0; }
+        }
+
+        /* PAGE 1: LANDING */
+        #page1 {
+            height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            background: 
+                linear-gradient(rgba(2, 4, 18, 0.2), rgba(2, 4, 18, 0.5)),
+                url('https://images.unsplash.com/photo-1489599849927-2ee91cede3ba?q=80&w=1920') center center/cover no-repeat;
+            transition: var(--transition);
+            animation: projectorFlicker 12s infinite;
+        }
+
+        @keyframes projectorFlicker {
+            0%, 100% { opacity: 1; }
+            10%, 12% { opacity: 0.96; }
+            11% { opacity: 1; }
+            50%, 52% { opacity: 0.98; }
+            80%, 82% { opacity: 0.97; }
+        }
+
+        .landing-card {
+            position: relative;
+            text-align: center;
+            padding: 3rem 6rem; 
+            background: var(--glass-bg);
+            border: 1px solid rgba(0, 210, 255, 0.2);
+            border-radius: 4px; 
+            backdrop-filter: blur(12px);
+            box-shadow: 0 20px 80px rgba(1, 2, 10, 0.8);
+            width: 95%;
+            max-width: 1100px;
+            animation: fadeIn 1.2s ease-out;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            z-index: 2;
+        }
+
+        /* CONGESTED TITLE DESIGN */
+        .main-title {
+            position: relative;
+            font-size: 6.5rem; 
+            font-weight: 900;
+            letter-spacing: -0.2rem;
+            text-transform: uppercase;
+            color: #fff;
+            text-shadow: 0 0 25px var(--accent-primary), 0 5px 15px rgba(2, 4, 18, 0.8);
+            margin-bottom: 0.5rem;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            animation: titleGlitch 5s infinite;
+        }
+
+        /* Anamorphic Flare Streak - Blue */
+        .flare-streak {
+            position: absolute;
+            width: 140%; height: 2px;
+            background: linear-gradient(90deg, transparent, var(--accent-primary), white, var(--accent-primary), transparent);
+            top: 55%;
+            left: -20%;
+            opacity: 0.5;
+            filter: blur(4px);
+            z-index: 3;
+            pointer-events: none;
+            box-shadow: 0 0 20px var(--accent-primary);
+        }
+
+        .title-accent {
+            font-size: 1.4em;
+            color: #fff;
+            text-shadow: 0 0 35px var(--accent-primary);
+            margin: 0 -0.1rem;
+            display: inline-block;
+            animation: pulse2 2s infinite alternate ease-in-out;
+            position: relative;
+            z-index: 2;
+        }
+
+        @keyframes pulse2 {
+            from { transform: scale(1); filter: brightness(1); }
+            to { transform: scale(1.1); filter: brightness(1.5); color: var(--accent-primary); }
+        }
+
+        @keyframes titleGlitch {
+            0%, 90%, 100% { transform: skew(0); }
+            91% { transform: skew(1.5deg); filter: hue-rotate(180deg); }
+            92% { transform: skew(-1.5deg); }
+            93% { transform: skew(0); filter: hue-rotate(0); }
+        }
+
+        .tagline {
+            font-style: italic;
+            font-size: 1.8rem;
+            color: var(--accent-primary);
+            margin-bottom: 3.5rem;
+            opacity: 1;
+            letter-spacing: 2px;
+            text-transform: uppercase;
+            text-shadow: 0 2px 15px rgba(2, 4, 18, 0.9);
+        }
+
+        /* BUTTONS - BLUE GRADIENT */
+        .cta-btn {
+            background: linear-gradient(45deg, #0077b6, var(--accent-primary));
+            color: white;
+            border: none;
+            padding: 1.2rem 4rem;
+            font-size: 1.1rem;
+            font-weight: bold;
+            text-transform: uppercase;
+            cursor: pointer;
+            transition: var(--transition);
+            border-radius: 2px;
+            letter-spacing: 4px;
+            box-shadow: 0 10px 30px rgba(0, 210, 255, 0.3);
+        }
+
+        .cta-btn:hover {
+            transform: scale(1.05);
+            box-shadow: 0 0 40px var(--accent-primary);
+        }
+
+        /* MODAL */
+        .modal-overlay {
+            position: fixed;
+            top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(2, 4, 18, 0.9);
+            display: none;
+            justify-content: center;
+            align-items: center;
+            z-index: 2000;
+            backdrop-filter: blur(20px);
+        }
+
+        .modal-box {
+            background: rgba(10, 15, 30, 0.95);
+            padding: 4rem;
+            border: 1px solid var(--accent-primary);
+            border-radius: 4px;
+            width: 90%;
+            max-width: 600px;
+            text-align: center;
+            box-shadow: 0 30px 80px rgba(1, 2, 10, 0.9);
+        }
+
+        .modal-box input {
+            width: 100%;
+            padding: 1.3rem;
+            background: rgba(2, 4, 18, 0.7);
+            border: 1px solid rgba(0, 210, 255, 0.3);
+            color: #fff;
+            margin-bottom: 2.5rem;
+            font-size: 1.3rem;
+            text-align: center;
+            border-radius: 2px;
+            font-family: 'Courier New', Courier, monospace;
+            outline: none;
+        }
+        .modal-box input:focus { border-color: var(--accent-primary); }
+
+        /* PAGE 2: DASHBOARD */
+        #page2 {
+            display: none;
+            height: 100vh;
+            grid-template-rows: auto 1fr;
+            background: 
+                radial-gradient(circle at 20% 30%, rgba(0, 210, 255, 0.12), transparent 50%),
+                radial-gradient(circle at 80% 70%, rgba(8, 217, 214, 0.08), transparent 40%),  
+                linear-gradient(rgba(2, 4, 18, 0.7), rgba(10, 15, 30, 0.85)),
+                url('https://images.unsplash.com/photo-1485846234645-a62644f84728?auto=format&fit=crop&q=80&w=1920') center/cover no-repeat;
+            background-attachment: fixed;
+        }
+
+        .header-bar {
+            background: rgba(10, 15, 30, 0.5);
+            padding: 1.5rem 3rem;
+            border-bottom: 1px solid rgba(0, 210, 255, 0.2);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            backdrop-filter: blur(30px);
+        }
+
+        .dashboard-body {
+            display: flex;
+            height: 100%;
+            overflow: hidden;
+        }
+
+        .sidebar {
+            width: var(--sidebar-width);
+            background: rgba(10, 12, 25, 0.4);
+            border-right: 1px solid rgba(255,255,255,0.05);
+            padding: 3rem 1.5rem;
+            display: flex;
+            flex-direction: column;
+            gap: 1.5rem;
+            backdrop-filter: blur(20px);
+        }
+
+        .nav-item {
+            padding: 1.5rem;
+            background: rgba(255,255,255,0.03);
+            border-radius: 4px;
+            display: flex;
+            align-items: center;
+            gap: 1.5rem;
+            cursor: pointer;
+            transition: var(--transition);
+            color: #999;
+        }
+
+        .nav-item:hover:not(.disabled) {
+            background: rgba(0, 210, 255, 0.08);
+            color: #fff;
+            transform: translateX(10px);
+        }
+
+        .nav-item.active {
+            background: rgba(0, 210, 255, 0.1);
+            color: #fff;
+            box-shadow: inset 5px 0 0 var(--accent-primary);
+        }
+
+        .nav-item.disabled {
+            opacity: 0.15;
+            cursor: not-allowed;
+        }
+
+        .nav-num {
+            width: 32px; height: 32px;
+            background: rgba(255,255,255,0.1);
+            border-radius: 50%;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            font-size: 0.9rem;
+            font-weight: bold;
+        }
+
+        .nav-item.active .nav-num {
+            background: var(--accent-primary);
+            color: #020412;
+        }
+
+        .main-content {
+            flex-grow: 1;
+            padding: 4rem;
+            overflow-y: auto;
+            position: relative;
+        }
+
+        /* STORY LINE SECTION */
+        #view-initial {
+            background: 
+                linear-gradient(rgba(10, 15, 30, 0.7), rgba(10, 15, 30, 0.9)),
+                url('https://images.unsplash.com/photo-1536440136628-849c177e76a1?auto=format&fit=crop&q=80&w=1200') center/cover no-repeat;
+            padding: 4rem;
+            border-radius: 8px;
+            box-shadow: 0 20px 80px rgba(2, 4, 18, 1);
+            max-width: 1100px;
+            margin: 0 auto;
+            border: 1px solid rgba(0, 210, 255, 0.15);
+            backdrop-filter: blur(10px);
+        }
+
+        .content-card {
+            background: rgba(20, 25, 45, 0.6);
+            padding: 4rem;
+            border-radius: 8px;
+            box-shadow: 0 20px 80px rgba(2, 4, 18, 1);
+            max-width: 1100px;
+            margin: 0 auto;
+            border: 1px solid rgba(0, 210, 255, 0.1);
+            backdrop-filter: blur(25px);
+        }
+
+        textarea {
+            width: 100%;
+            height: 400px;
+            background: rgba(2, 4, 18, 0.5);
+            border: 1px solid rgba(0, 210, 255, 0.2);
+            color: #fff;
+            padding: 2.5rem;
+            font-family: 'Courier New', Courier, monospace;
+            font-size: 1.3rem;
+            line-height: 1.8;
+            margin-bottom: 3rem;
+            resize: none;
+            outline: none;
+            border-radius: 2px;
+            transition: var(--transition);
+        }
+
+        textarea:focus {
+            border-color: var(--accent-primary);
+            background: rgba(2, 4, 18, 0.7);
+            box-shadow: 0 0 30px rgba(0, 210, 255, 0.2);
+        }
+
+        /* LOADING ANIMATION */
+        .loader {
+            display: none;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            gap: 2rem;
+            padding: 3rem;
+        }
+
+        .film-reel {
+            width: 80px; height: 80px;
+            border: 8px solid rgba(255,255,255,0.05);
+            border-top: 8px solid var(--accent-primary);
+            border-radius: 50%;
+            animation: spin 0.8s linear infinite;
+        }
+
+        @keyframes spin { 100% { transform: rotate(360deg); } }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(30px); } to { opacity: 1; transform: translateY(0); } }
+
+        .hidden { display: none !important; }
+
+        .export-group {
+            display: flex;
+            gap: 1rem;
+        }
+        .export-btn {
+            padding: 0.8rem 1.5rem;
+            background: rgba(255,255,255,0.05);
+            border: 1px solid rgba(0, 210, 255, 0.2);
+            color: #fff;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 0.95rem;
+            font-weight: bold;
+            transition: 0.3s;
+            letter-spacing: 2px;
+        }
+        .export-btn:hover { 
+            background: var(--accent-primary); 
+            color: #020412; 
+            box-shadow: 0 0 20px var(--accent-primary);
+        }
+
+        .screenplay-text {
+            white-space: pre-wrap;
+            font-family: 'Courier New', Courier, monospace;
+            line-height: 2;
+            color: #fff;
+            background: rgba(2, 4, 18, 0.4);
+            padding: 3rem;
+            border-radius: 4px;
+            border: 1px solid rgba(0, 210, 255, 0.1);
+            text-shadow: 0 1px 3px rgba(2, 4, 18, 0.5);
+        }
+    </style>
+</head>
+<body onload="initDust()">
+
+    <!-- Letterbox -->
+    <div class="letterbox top"></div>
+    <div class="letterbox bottom"></div>
+
+    <!-- Cine FX Layers -->
+    <div class="cine-layer film-grain"></div>
+    <div class="cine-layer scanlines"></div>
+    <div class="cine-layer vignette"></div>
+
+    <!-- PAGE 1: LANDING -->
+    <section id="page1">
+        <div class="dust-container" id="dust"></div>
+        <div class="landing-card">
+            <h1 class="main-title">
+                Scene<span class="title-accent">2</span>Screen
+                <div class="flare-streak"></div>
+            </h1>
+            <p class="tagline">Roll Camera Action</p>
+            <button class="cta-btn" onclick="openLogin()">Enter Production Office</button>
+        </div>
+    </section>
+
+    <!-- AUTH MODAL -->
+    <div class="modal-overlay" id="authModal">
+        <div class="modal-box">
+            <h2 style="color: var(--accent-primary); font-size: 2.2rem; margin-bottom: 0.8rem; letter-spacing: 4px; text-transform: uppercase;">Director Identity</h2>
+            <p style="margin-bottom: 2.5rem; opacity: 0.8; font-size: 1.1rem; letter-spacing: 1px;">Confirm credentials to initiate sequence:</p>
+            <input type="text" id="usernameInput" placeholder="Name of Director..." autocomplete="off">
+            <button class="cta-btn" id="loginContinue" onclick="handleLogin()">Action</button>
+        </div>
+    </div>
+
+    <!-- PAGE 2: DASHBOARD -->
+    <section id="page2">
+        <header class="header-bar">
+            <h2 id="welcomeGreeting" style="font-weight: 300; letter-spacing: 2px; text-transform: uppercase; font-size: 1.1rem; color: var(--accent-primary);">Status: Ready on Set</h2>
+            <div class="export-group" id="exportControls" style="display: none;">
+                <button class="export-btn" onclick="mockExport('TXT')">EXPORT TXT</button>
+                <button class="export-btn" onclick="mockExport('PDF')">EXPORT PDF</button>
+                <button class="export-btn" onclick="mockExport('DOCX')">EXPORT DOCX</button>
+            </div>
+        </header>
+
+        <div class="dashboard-body">
+            <aside class="sidebar">
+                <div class="nav-item active" onclick="switchTab('story')" id="tabStory">
+                    <div class="nav-num">1</div>
+                    <span>Story Line</span>
+                </div>
+                <div class="nav-item disabled" onclick="switchTab('screenplay')" id="tabScreenplay">
+                    <div class="nav-num">2</div>
+                    <span>Screenplay</span>
+                </div>
+                <div class="nav-item disabled" onclick="switchTab('characters')" id="tabCharacters">
+                    <div class="nav-num">3</div>
+                    <span>Characters</span>
+                </div>
+                <div class="nav-item disabled" onclick="switchTab('sound')" id="tabSound">
+                    <div class="nav-num">4</div>
+                    <span>Sound Design</span>
+                </div>
+            </aside>
+
+            <main class="main-content" id="mainDisplay">
+                <div id="view-initial">
+                    <h2 style="margin-bottom: 2.5rem; border-bottom: 1px solid rgba(0, 210, 255, 0.2); padding-bottom: 1.5rem; text-transform: uppercase; letter-spacing: 5px; color: #fff;">Treatment</h2>
+                    <textarea id="storyInput" placeholder="Outline the narrative arc..."></textarea>
+                    
+                    <div id="genControls" style="text-align: center;">
+                        <button class="cta-btn" id="generateBtn" onclick="startGeneration()">Action! (Generate)</button>
+                    </div>
+
+                    <div class="loader" id="loader">
+                        <div class="film-reel"></div>
+                        <p style="color: var(--accent-primary); font-size: 1.3rem; font-weight: bold; letter-spacing: 4px; text-transform: uppercase;">Rendering Master Script...</p>
+                        <p style="font-size: 1rem; opacity: 0.9;">System processing AI narrative nodes</p>
+                    </div>
+                </div>
+
+                <div id="view-content" class="content-card hidden">
+                    <h2 id="contentTitle" style="color: var(--accent-primary); margin-bottom: 2.5rem; text-transform: uppercase; letter-spacing: 5px; border-bottom: 1px solid rgba(0, 210, 255, 0.3); padding-bottom: 1rem;">Screenplay</h2>
+                    <div id="contentArea" class="screenplay-text"></div>
+                </div>
+            </main>
+        </div>
+    </section>
+
+    <script>
+        let currentUser = "Director";
+        let isGenerated = false;
+        let activeTab = "story";
+        let generatedData = { screenplay: "", characters: "", sound: "" };
+
+        function initDust() {
+            const container = document.getElementById('dust');
+            for (let i = 0; i < 40; i++) {
+                const mote = document.createElement('div');
+                mote.className = 'mote';
+                const size = Math.random() * 3 + 1;
+                mote.style.width = size + 'px';
+                mote.style.height = size + 'px';
+                mote.style.left = Math.random() * 100 + 'vw';
+                mote.style.top = Math.random() * 100 + 'vh';
+                mote.style.animationDelay = (Math.random() * 10) + 's';
+                mote.style.animationDuration = (Math.random() * 10 + 10) + 's';
+                container.appendChild(mote);
+            }
+        }
+
+        function openLogin() {
+            document.getElementById('authModal').style.display = 'flex';
+        }
+
+        function handleLogin() {
+            const name = document.getElementById('usernameInput').value.trim();
+            if(!name) return;
+            currentUser = name;
+            document.getElementById('welcomeGreeting').innerText = `Director: ${currentUser.toUpperCase()} | PRODUCTION LOG`;
+            document.getElementById('authModal').style.display = 'none';
+            document.getElementById('page1').style.display = 'none';
+            document.getElementById('page2').style.display = 'grid';
+            document.querySelector('.letterbox.top').style.height = '4vh';
+            document.querySelector('.letterbox.bottom').style.height = '4vh';
+        }
+
+        function startGeneration() {
+            const prompt = document.getElementById('storyInput').value;
+            if(!prompt) {
+                alert("The camera won't roll without a concept! Please input your story.");
+                return;
+            }
+            document.getElementById('genControls').classList.add('hidden');
+            document.getElementById('loader').style.display = 'flex';
+            setTimeout(() => {
+                isGenerated = true;
+                completeGeneration(prompt);
+            }, 3000);
+        }
+
+        function completeGeneration(prompt) {
+            generatedData.screenplay = `FADE IN:\n\nEXT. RAINY STUDIO LOT - NIGHT\n\nA neon sign for "Sceen2Screen" flickers above. DIRECTOR ${currentUser.toUpperCase()} reviews the production notes.\n\nDIRECTOR\n(to camera)\nWe're making history tonight.\n\nSCENE HEADING: THE REVEAL\n\nThe AI script unfurls. Every line is sharp, every beat is cinematic. The production is officially greenlit.`;
+            generatedData.characters = `LEAD: THE CINEMATOGRAPHER\n- Background: Years spent chasing the perfect light.\n- Motivation: To capture what's never been seen.\n- Arc: Learning to trust the AI as a creative partner.\n\nSUPPORT: THE STORY ENGINE\n- Role: A sentient script assistant.\n- Trait: Perfectly logical but learning human irony.`;
+            generatedData.sound = `- Ambient: Rain hitting asphalt, hum of high-voltage lights.\n- Score: Low, industrial synth pulse with swelling strings.\n- Foley: Film reel spinning, pen scratching on high-grain paper.`;
+            document.querySelectorAll('.nav-item').forEach(el => el.classList.remove('disabled'));
+            document.getElementById('loader').style.display = 'none';
+            document.getElementById('exportControls').style.display = 'flex';
+            switchTab('screenplay');
+        }
+
+        function switchTab(tab) {
+            if(!isGenerated && tab !== 'story') return;
+            activeTab = tab;
+            document.querySelectorAll('.nav-item').forEach(el => el.classList.remove('active'));
+            document.getElementById('view-initial').classList.add('hidden');
+            document.getElementById('view-content').classList.remove('hidden');
+            const area = document.getElementById('contentArea');
+            const title = document.getElementById('contentTitle');
+            if(tab === 'story') {
+                document.getElementById('tabStory').classList.add('active');
+                document.getElementById('view-initial').classList.remove('hidden');
+                document.getElementById('view-content').classList.add('hidden');
+                document.getElementById('genControls').classList.remove('hidden');
+            } else if(tab === 'screenplay') {
+                document.getElementById('tabScreenplay').classList.add('active');
+                title.innerText = "Current Production Script";
+                area.innerText = generatedData.screenplay;
+            } else if(tab === 'characters') {
+                document.getElementById('tabCharacters').classList.add('active');
+                title.innerText = "Character Profiles & Arcs";
+                area.innerText = generatedData.characters;
+            } else if(tab === 'sound') {
+                document.getElementById('tabSound').classList.add('active');
+                title.innerText = "Sound Design & Audio Mix";
+                area.innerText = generatedData.sound;
+            }
+        }
+
+        function mockExport(format) {
+            alert(`Sceen2Screen Studios: Packaging your ${activeTab} as ${format}...`);
+        }
+
+        document.getElementById("usernameInput").addEventListener("keyup", function(event) {
+            if (event.key === "Enter") handleLogin();
+        });
+    </script>
+</body>
+</html>
